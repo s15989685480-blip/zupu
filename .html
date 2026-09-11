@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家族族谱系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #f9f3e8;
+        }
+        /* 标准树形连接线，不会向外溢出 */
+        .tree {
+            padding: 8px 0;
+        }
+        .tree ul {
+            padding-top: 26px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            list-style: none;
+            margin: 0;
+            padding-left: 0;
+        }
+        .tree li {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            list-style: none;
+            padding: 26px 8px 0 8px;
+            position: relative;
+        }
+        .tree li::before,
+        .tree li::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 50%;
+            width: 50%;
+            height: 26px;
+            border-top: 1px solid #885c2e;
+        }
+        .tree li::after {
+            right: auto;
+            left: 50%;
+            border-left: 1px solid #885c2e;
+        }
+        /* 独子，清除多余横线 */
+        .tree li:only-child::before,
+        .tree li:only-child::after {
+            display: none;
+        }
+        .tree li:only-child {
+            padding-top: 0;
+        }
+        .tree li:only-child>ul {
+            padding-top: 26px;
+        }
+        /* 首尾节点圆角处理 */
+        .tree li:first-child::before {
+            border: none;
+        }
+        .tree li:last-child::after {
+            border: none;
+        }
+        .tree li:last-child::before {
+            border-right: 1px solid #885c2e;
+            border-radius: 0 6px 0 0;
+        }
+        .tree li:first-child::after {
+            border-radius: 6px 0 0 0;
+        }
+        .tree ul ul::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 0;
+            height: 26px;
+            border-left: 1px solid #885c2e;
+        }
+        .tree-node {
+            border: 1px solid #b48c5e;
+            background: #fff9ef;
+            padding: 10px 12px;
+            border-radius: 8px;
+            min-width: 145px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 2px 4px #00000015;
+        }
+        .collapse-btn {
+            position: absolute;
+            top: 4px;
+            right:6px;
+            font-size:14px;
+            width:18px;height:18px;
+            line-height:18px;
+            border-radius:50%;
+            background:#d4b894;
+            color:#333;
+            cursor:pointer;
+            z-index:2;
+        }
+        .highlight-node{
+            border:2px solid #c53030 !important;
+            background:#fff1f1 !important;
+        }
+        .btn-disabled{
+            background:#bcbcbc !important;
+            cursor:not-allowed !important;
+            opacity:0.65;
+        }
+
+        /* ==========打印导出PDF样式【修复完成】========== */
+        @media print {
+            @page {
+                margin: 8mm;
+                size: A4 landscape;
+            }
+            nav, #keyModal, #changeKeyModal, #importModal,
+            button,.collapse-btn,.edit-btn,.delete-btn,.export-btn {
+                display: none !important;
+            }
+            body {
+                background:#ffffff;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            #treeRender {
+                overflow: visible !important;
+                height: auto !important;
+                width:100% !important;
+                padding:10px !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!--秘钥弹窗-->
+    <div id="keyModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-80 shadow-lg">
+            <h3 class="text-lg font-bold mb-4">管理员秘钥验证</h3>
+            <p class="text-gray-500 text-sm mb-3">输入秘钥后才可以新增/修改/删除/导出备份数据</p>
+            <input id="secretKeyInput" type="password" placeholder="请输入秘钥" class="w-full border p-2 rounded mb-4">
+            <div id="keyErr" class="text-red-500 text-sm mb-2 hidden">秘钥无效，仅可浏览</div>
+            <div class="flex gap-2 justify-end">
+                <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 rounded">取消</button>
+                <button onclick="checkSecretKey()" class="px-4 py-2 bg-amber-600 text-white rounded">确认</button>
+            </div>
+        </div>
+    </div>
+    <!--修改秘钥弹窗-->
+    <div id="changeKeyModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-80 shadow-lg">
+            <h3 class="text-lg font-bold mb-4">修改管理员秘钥</h3>
+            <input id="newSecretKey" type="password" placeholder="设置新秘钥" class="w-full border p-2 rounded mb-4">
+            <div class="flex gap-2 justify-end">
+                <button onclick="closeChangeKeyModal()" class="px-4 py-2 bg-gray-200 rounded">取消</button>
+                <button onclick="saveNewSecret()" class="px-4 py-2 bg-amber-600 text-white rounded">保存</button>
+            </div>
+        </div>
+    </div>
+    <!--导入数据弹窗-->
+    <div id="importModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg w-96 shadow-lg">
+            <h3 class="text-lg font-bold mb-4">导入备份JSON数据</h3>
+            <textarea id="importJsonText" rows="8" class="w-full border p-2 rounded mb-4" placeholder="粘贴备份JSON文本"></textarea>
+            <div class="flex gap-2 justify-end">
+                <button onclick="closeImportModal()" class="px-4 py-2 bg-gray-200 rounded">取消</button>
+                <button onclick="doImportData()" class="px-4 py-2 bg-amber-600 text-white rounded">导入</button>
+            </div>
+        </div>
+    </div>
+    <!--导航栏-->
+    <nav class="bg-amber-800 text-white shadow">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap gap-4 items-center">
+            <a href="#page-home" onclick="switchPage('home')" class="hover:text-amber-200">家族图谱首页</a>
+            <a href="#page-inherit" onclick="switchPage('inherit')" class="hover:text-amber-200">家族传承信息</a>
+            <a href="#page-add" onclick="gotoAddPage()" class="hover:text-amber-200">新增族人</a>
+            <a href="#page-glory" onclick="switchPage('glory')" class="hover:text-amber-200">家族光荣史记</a>
+            <a href="#page-tools" onclick="switchPage('tools')" class="hover:text-amber-200">⚙️工具设置</a>
+            <div class="ml-auto flex items-center gap-3">
+                <input id="searchName" placeholder="搜索族人姓名" oninput="searchPerson()" class="text-black px-2 py-1 rounded text-sm w-36">
+                <span id="authTip" class="text-amber-200 text-sm">未登录(仅浏览)</span>
+                <button onclick="openModal()" class="border border-white px-2 py-1 rounded text-sm">管理员秘钥登录</button>
+            </div>
+        </div>
+    </nav>
+    <div class="max-w-7xl mx-auto p-4">
+        <!--首页 家族树图谱-->
+        <div id="page-home" class="page">
+            <div class="flex gap-3 mb-4">
+                <button onclick="expandAllTree()" class="bg-amber-700 text-white px-3 py-1 rounded text-sm">全部展开</button>
+                <button onclick="collapseAllTree()" class="bg-amber-700 text-white px-3 py-1 rounded text-sm">全部折叠</button>
+            </div>
+            <h2 class="text-2xl font-bold text-amber-900 mb-6 text-center">家族族谱图谱</h2>
+            <div id="treeRender" class="overflow-auto p-8 bg-white rounded shadow"></div>
+        </div>
+        <!--家族传承信息页面-->
+        <div id="page-inherit" class="page hidden">
+            <h2 class="text-2xl font-bold text-amber-900 mb-4">家族传承信息</h2>
+            <div id="inheritList"></div>
+            <div id="inheritEditArea" class="mt-6 hidden border p-4 bg-white rounded">
+                <h4 class="font-bold mb-2">新增/编辑传承记录</h4>
+                <select id="inheritCat" class="w-full border p-2 mb-2 rounded">
+                    <option value="家训">家训</option>
+                    <option value="起源">家族起源</option>
+                    <option value="迁徙">迁徙历史</option>
+                    <option value="家风">家风</option>
+                    <option value="其他">其他</option>
+                </select>
+                <input id="inheritTitle" placeholder="标题" class="w-full border p-2 mb-2 rounded">
+                <textarea id="inheritContent" placeholder="家族家训、迁徙、起源故事" rows="5" class="w-full border p-2 mb-2 rounded"></textarea>
+                <input type="hidden" id="editInheritId">
+                <button onclick="saveInherit()" class="bg-amber-600 text-white px-4 py-2 rounded">保存</button>
+            </div>
+            <button id="btnAddInherit" onclick="openAddInherit()" class="mt-4 bg-amber-700 text-white px-4 py-2 rounded hidden">新增传承记录</button>
+        </div>
+        <!--新增族人页面-->
+        <div id="page-add" class="page hidden">
+            <h2 class="text-2xl font-bold text-amber-900 mb-4">新增/编辑族人</h2>
+            <div class="bg-white p-5 rounded shadow max-w-xl">
+                <input type="hidden" id="editPersonId">
+                <div class="mb-3">
+                    <label>姓名</label>
+                    <input id="pName" class="w-full border p-2 rounded">
+                </div>
+                <div class="mb-3">
+                    <label>性别</label>
+                    <select id="pGender" class="w-full border p-2 rounded">
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label>出生年月</label>
+                    <input id="pBirth" placeholder="例：1900‑01" class="w-full border p-2 rounded">
+                </div>
+                <div class="mb-3">
+                    <label>逝世年月（在世留空）</label>
+                    <input id="pDeath" class="w-full border p-2 rounded">
+                </div>
+                <div class="mb-3">
+                    <label>选择父级（挂靠到谁的下游）</label>
+                    <select id="pParentId" class="w-full border p-2 rounded"></select>
+                </div>
+                <div class="mb-3">
+                    <label>个人简介</label>
+                    <textarea id="pIntro" rows="4" class="w-full border p-2 rounded"></textarea>
+                </div>
+                <button onclick="savePerson()" class="bg-amber-700 text-white px-5 py-2 rounded">保存族人信息</button>
+            </div>
+        </div>
+        <!--家族光荣史记页面-->
+        <div id="page-glory" class="page hidden">
+            <h2 class="text-2xl font-bold text-amber-900 mb-4">家族光荣史记</h2>
+            <div id="gloryList"></div>
+            <div id="gloryEditArea" class="mt-6 hidden border p-4 bg-white rounded">
+                <h4 class="font-bold mb-2">新增/编辑史记事件</h4>
+                <input id="gloryTitle" placeholder="事件标题" class="w-full border p-2 mb-2 rounded">
+                <input id="gloryTime" placeholder="发生时间" class="w-full border p-2 mb-2 rounded">
+                <textarea id="gloryContent" placeholder="事迹详情" rows="5" class="w-full border p-2 mb-2 rounded"></textarea>
+                <input type="hidden" id="editGloryId">
+                <button onclick="saveGlory()" class="bg-amber-600 text-white px-4 py-2 rounded">保存事件</button>
+            </div>
+            <button id="btnAddGlory" onclick="openAddGlory()" class="mt-4 bg-amber-700 text-white px-4 py-2 rounded hidden">新增光荣事件</button>
+        </div>
+        <!--工具设置页面-->
+        <div id="page-tools" class="page hidden">
+            <h2 class="text-2xl font-bold text-amber-900 mb-4">工具与设置</h2>
+            <div class="bg-white p-5 rounded shadow max-w-xl space-y-4">
+                <div>
+                    <h4 class="font-bold">管理员秘钥</h4>
+                    <button id="btnChangeKey" onclick="openChangeKeyModal()" class="mt-2 bg-amber-600 text-white px-3 py-1 rounded hidden">修改秘钥</button>
+                </div>
+                <hr>
+                <div>
+                    <h4 class="font-bold">数据备份</h4>
+                    <div class="flex gap-2 mt-2 flex-wrap">
+                        <button id="btnExportPdf" onclick="exportPdf()" class="bg-amber-600 text-white px-3 py-1 rounded">导出PDF备份</button>
+                        <button id="btnOpenImport" onclick="openImportModal()" class="bg-amber-600 text-white px-3 py-1 rounded">导入备份</button>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">导出PDF保存族谱，防止清除浏览器缓存丢失族谱数据，需要管理员秘钥登录才可操作</p>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+//配置
+let ADMIN_SECRET = "family123456";
+let isAdmin = false;
+let searchKeyword = "";
+//初始化本地存储
+function initStorage(){
+    if(!localStorage.getItem("admin_secret")){
+        localStorage.setItem("admin_secret",ADMIN_SECRET);
+    }else{
+        ADMIN_SECRET = localStorage.getItem("admin_secret");
+    }
+    if(!localStorage.getItem("family_tree")){
+        const initTree = [
+            {id:"root1",name:"家族始祖",gender:"男",birth:"1850",death:"1920",intro:"家族第一代先祖",parentId:null,fold:false}
+        ]
+        localStorage.setItem("family_tree",JSON.stringify(initTree));
+    }
+    if(!localStorage.getItem("family_inherit")) localStorage.setItem("family_inherit",JSON.stringify([]));
+    if(!localStorage.getItem("family_glory")) localStorage.setItem("family_glory",JSON.stringify([]));
+}
+//页面切换
+function switchPage(pageName){
+    document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+    document.getElementById("page-"+pageName).classList.remove("hidden");
+    if(pageName==="home") renderTree();
+    if(pageName==="inherit") renderInherit();
+    if(pageName==="glory") renderGlory();
+    refreshToolsUi();
+}
+function refreshToolsUi(){
+    document.getElementById("btnChangeKey").classList.toggle("hidden",!isAdmin);
+    //备份按钮控制：管理员登录才启用
+    const expBtn = document.getElementById("btnExportPdf");
+    const impBtn = document.getElementById("btnOpenImport");
+    if(isAdmin){
+        expBtn.classList.remove("btn-disabled");
+        impBtn.classList.remove("btn-disabled");
+        expBtn.disabled = false;
+        impBtn.disabled = false;
+    }else{
+        expBtn.classList.add("btn-disabled");
+        impBtn.classList.add("btn-disabled");
+        expBtn.disabled = true;
+        impBtn.disabled = true;
+    }
+}
+function gotoAddPage(){
+    if(!isAdmin){
+        openModal();
+        return;
+    }
+    clearPersonForm();
+    loadParentSelect();
+    switchPage("add");
+}
+//秘钥弹窗
+function openModal(){
+    document.getElementById("keyModal").classList.remove("hidden");
+    document.getElementById("keyErr").classList.add("hidden");
+    document.getElementById("secretKeyInput").value="";
+}
+function closeModal(){
+    document.getElementById("keyModal").classList.add("hidden");
+}
+function checkSecretKey(){
+    const val = document.getElementById("secretKeyInput").value.trim();
+    if(val === ADMIN_SECRET){
+        isAdmin = true;
+        closeModal();
+        refreshAuthUi();
+    }else{
+        document.getElementById("keyErr").classList.remove("hidden");
+    }
+}
+function refreshAuthUi(){
+    const tip = document.getElementById("authTip");
+    if(isAdmin){
+        tip.innerText="✅管理员已登录，可以编辑、导出备份";
+    }else{
+        tip.innerText="未登录(仅浏览)";
+    }
+    document.getElementById("btnAddInherit").classList.toggle("hidden",!isAdmin);
+    document.getElementById("btnAddGlory").classList.toggle("hidden",!isAdmin);
+    refreshToolsUi();
+    renderTree();
+    renderInherit();
+    renderGlory();
+}
+//修改秘钥弹窗
+function openChangeKeyModal(){
+    document.getElementById("changeKeyModal").classList.remove("hidden");
+    document.getElementById("newSecretKey").value="";
+}
+function closeChangeKeyModal(){
+    document.getElementById("changeKeyModal").classList.add("hidden");
+}
+function saveNewSecret(){
+    const newk = document.getElementById("newSecretKey").value.trim();
+    if(!newk){alert("秘钥不能为空");return;}
+    ADMIN_SECRET = newk;
+    localStorage.setItem("admin_secret",ADMIN_SECRET);
+    closeChangeKeyModal();
+    alert("秘钥修改成功，请记住新秘钥！");
+}
+
+//====【新版导出PDF，浏览器打印方案】====
+function exportPdf() {
+  if (!isAdmin) {
+    openModal();
+    return;
+  }
+  // 切到家族图谱首页，导出内容即为首页
+  switchPage('home');
+  expandAllTree();
+  setTimeout(window.print, 700);
+}
+
+
+//导入弹窗
+function openImportModal(){
+    document.getElementById("importModal").classList.remove("hidden");
+    document.getElementById("importJsonText").value="";
+}
+function closeImportModal(){
+    document.getElementById("importModal").classList.add("hidden");
+}
+function doImportData(){
+    const txt = document.getElementById("importJsonText").value;
+    try{
+        const obj = JSON.parse(txt);
+        localStorage.setItem("family_tree",JSON.stringify(obj.tree));
+        localStorage.setItem("family_inherit",JSON.stringify(obj.inherit));
+        localStorage.setItem("family_glory",JSON.stringify(obj.glory));
+        closeImportModal();
+        alert("导入成功！");
+        renderTree();renderInherit();renderGlory();
+    }catch(e){
+        alert("JSON格式错误，导入失败");
+    }
+}
+
+//家族树渲染
+function getFamilyData(){
+    return JSON.parse(localStorage.getItem("family_tree"));
+}
+//折叠展开控制
+function toggleFold(id){
+    const arr = getFamilyData();
+    const p = arr.find(x=>x.id===id);
+    if(p){
+        p.fold = !p.fold;
+        localStorage.setItem("family_tree",JSON.stringify(arr));
+        renderTree();
+    }
+}
+function expandAllTree(){
+    const arr = getFamilyData();
+    arr.forEach(i=>i.fold=false);
+    localStorage.setItem("family_tree",JSON.stringify(arr));
+    renderTree();
+}
+function collapseAllTree(){
+    const arr = getFamilyData();
+    arr.forEach(i=>i.fold=true);
+    localStorage.setItem("family_tree",JSON.stringify(arr));
+    renderTree();
+}
+//搜索族人
+function searchPerson(){
+    searchKeyword = document.getElementById("searchName").value.trim();
+    renderTree();
+}
+//递归生成树形HTML（ul‑li新版）
+function buildTreeNode(person, allList) {
+    const children = allList.filter(x => x.parentId === person.id);
+    let isHighlight = searchKeyword && person.name.includes(searchKeyword);
+    let cls = isHighlight ? "tree-node highlight-node" : "tree-node";
+    let foldIcon = person.fold ? "+" : "−";
+    let nodeHtml = `<div class="${cls}">`;
+    if (children.length > 0) {
+        nodeHtml += `<span class="collapse-btn" onclick="toggleFold('${person.id}')">${foldIcon}</span>`;
+    }
+    nodeHtml += `
+        <div class="font-bold">${person.name}</div>
+        <div class="text-xs text-gray-600">${person.birth || ""} ${person.death ? "‑" + person.death : ""} ${person.death ? "(已故)" : "(在世)"}</div>
+    `;
+    if (isAdmin) {
+        nodeHtml += `
+            <div class="mt-2">
+                <button onclick="editPerson('${person.id}')" class="text-xs bg-amber-600 text-white px-1 rounded">编辑</button>
+                <button onclick="delPerson('${person.id}')" class="text-xs bg-red-500 text-white px-1 rounded ml-1">删除</button>
+            </div>
+        `;
+    }
+    nodeHtml += `</div>`;
+    let htmlOut = nodeHtml;
+    if (children.length > 0 && !person.fold) {
+        htmlOut += `<ul>` + children.map(ch => `<li>` + buildTreeNode(ch, allList) + `</li>`).join("") + `</ul>`;
+    }
+    return htmlOut;
+}
+function renderTree() {
+    const list = getFamilyData();
+    const rootList = list.filter(x => !x.parentId);
+    let out = `<div class="tree"><ul>`;
+    out += rootList.map(r => `<li>` + buildTreeNode(r, list) + `</li>`).join("");
+    out += `</ul></div>`;
+    document.getElementById("treeRender").innerHTML = out;
+}
+//族人表单
+function loadParentSelect(){
+    const sel = document.getElementById("pParentId");
+    sel.innerHTML = `<option value="">--无（始祖级）--</option>`;
+    getFamilyData().forEach(p=>{
+        sel.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+    })
+}
+function clearPersonForm(){
+    document.getElementById("editPersonId").value="";
+    document.getElementById("pName").value="";
+    document.getElementById("pGender").value="男";
+    document.getElementById("pBirth").value="";
+    document.getElementById("pDeath").value="";
+    document.getElementById("pIntro").value="";
+}
+function savePerson(){
+    if(!isAdmin) return;
+    const editId = document.getElementById("editPersonId").value;
+    let arr = getFamilyData();
+    const newParentId = document.getElementById("pParentId").value||null;
+    const obj = {
+        id: editId||("p_"+Date.now()),
+        name:document.getElementById("pName").value.trim(),
+        gender:document.getElementById("pGender").value,
+        birth:document.getElementById("pBirth").value.trim(),
+        death:document.getElementById("pDeath").value.trim(),
+        parentId: newParentId,
+        intro:document.getElementById("pIntro").value.trim(),
+        fold:false
+    }
+    if(!obj.name){alert("姓名不能为空");return;}
+    //禁止挂载给自己或后代
+    function isDescendant(pid,targetId){
+        const kids = arr.filter(x=>x.parentId===pid);
+        for(let k of kids){
+            if(k.id===targetId) return true;
+            if(isDescendant(k.id,targetId)) return true;
+        }
+        return false;
+    }
+    if(editId && newParentId){
+        if(editId === newParentId || isDescendant(editId,newParentId)){
+            alert("不允许将自己或后代设置为父辈！");
+            return;
+        }
+    }
+    if(editId){
+        const idx = arr.findIndex(x=>x.id===editId);
+        arr[idx]=obj;
+    }else{
+        arr.push(obj);
+    }
+    localStorage.setItem("family_tree",JSON.stringify(arr));
+    alert("保存成功");
+    clearPersonForm();
+    switchPage("home");
+}
+function editPerson(pid){
+    if(!isAdmin) return;
+    const arr = getFamilyData();
+    const p = arr.find(x=>x.id===pid);
+    if(!p)return;
+    document.getElementById("editPersonId").value = p.id;
+    document.getElementById("pName").value = p.name;
+    document.getElementById("pGender").value = p.gender;
+    document.getElementById("pBirth").value = p.birth||"";
+    document.getElementById("pDeath").value = p.death||"";
+    document.getElementById("pParentId").value = p.parentId||"";
+    document.getElementById("pIntro").value = p.intro||"";
+    loadParentSelect();
+    switchPage("add");
+}
+function delPerson(pid){
+    if(!isAdmin)return;
+    if(!confirm("确定删除？会连带其所有后代一并删除！"))return;
+    let arr = getFamilyData();
+    //递归删除所有后代
+    function delRecursive(id){
+        const childs = arr.filter(x=>x.parentId===id).map(x=>x.id);
+        childs.forEach(cid=>delRecursive(cid));
+        arr = arr.filter(x=>x.id!==id);
+    }
+    delRecursive(pid);
+    localStorage.setItem("family_tree",JSON.stringify(arr));
+    renderTree();
+}
+//家族传承模块
+function getInheritData(){return JSON.parse(localStorage.getItem("family_inherit"));}
+function renderInherit(){
+    const list = getInheritData();
+    let html = "";
+    if(list.length===0) html="<div class='text-gray-500'>暂无家族传承记录</div>";
+    list.forEach(item=>{
+        html += `<div class="bg-white p-4 rounded mb-3 shadow">
+            <span class="inline-block bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded">${item.category||"其他"}</span>
+            <h4 class="font-bold text-lg mt-1">${item.title}</h4>
+            <div class="mt-2 text-gray-700 whitespace-pre-wrap">${item.content}</div>`;
+        if(isAdmin){
+            html +=`<div class="mt-3">
+            <button onclick="editInherit('${item.id}')" class="bg-amber-600 text-white px-2 py-1 rounded text-sm">编辑</button>
+            <button onclick="delInherit('${item.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-sm ml-2">删除</button>
+            </div>`
+        }
+        html +=`</div>`;
+    })
+    document.getElementById("inheritList").innerHTML = html;
+    document.getElementById("inheritEditArea").classList.add("hidden");
+}
+function openAddInherit(){
+    document.getElementById("editInheritId").value="";
+    document.getElementById("inheritTitle").value="";
+    document.getElementById("inheritContent").value="";
+    document.getElementById("inheritEditArea").classList.remove("hidden");
+}
+function editInherit(id){
+    const list = getInheritData();
+    const item = list.find(x=>x.id===id);
+    if(!item)return;
+    document.getElementById("editInheritId").value=item.id;
+    document.getElementById("inheritCat").value = item.category||"其他";
+    document.getElementById("inheritTitle").value=item.title;
+    document.getElementById("inheritContent").value=item.content;
+    document.getElementById("inheritEditArea").classList.remove("hidden");
+}
+function saveInherit(){
+    if(!isAdmin)return;
+    const eid = document.getElementById("editInheritId").value;
+    let arr = getInheritData();
+    const obj={
+        id:eid||"ih_"+Date.now(),
+        category:document.getElementById("inheritCat").value,
+        title:document.getElementById("inheritTitle").value.trim(),
+        content:document.getElementById("inheritContent").value.trim()
+    }
+    if(!obj.title){alert("标题不能为空");return;}
+    if(eid){
+        const idx = arr.findIndex(x=>x.id===eid);
+        arr[idx]=obj;
+    }else{
+        arr.push(obj);
+    }
+    localStorage.setItem("family_inherit",JSON.stringify(arr));
+    renderInherit();
+}
+function delInherit(id){
+    if(!confirm("确定删除这条传承记录？"))return;
+    let arr = getInheritData().filter(x=>x.id!==id);
+    localStorage.setItem("family_inherit",JSON.stringify(arr));
+    renderInherit();
+}
+//光荣史记模块
+function getGloryData(){return JSON.parse(localStorage.getItem("family_glory"));}
+function renderGlory(){
+    const list = getGloryData();
+    let html="";
+    if(list.length===0) html="<div class='text-gray-500'>暂无家族光荣史记</div>";
+    list.forEach(item=>{
+        html +=`<div class="bg-white p-4 rounded mb-3 shadow">
+            <div class="font-bold text-lg">${item.title}</div>
+            <div class="text-amber-700 text-sm">${item.time||""}</div>
+            <div class="mt-2 text-gray-700 whitespace-pre-wrap">${item.content}</div>`;
+        if(isAdmin){
+            html +=`<div class="mt-3">
+            <button onclick="editGlory('${item.id}')" class="bg-amber-600 text-white px-2 py-1 rounded text-sm">编辑</button>
+            <button onclick="delGlory('${item.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-sm ml-2">删除</button>
+            </div>`
+        }
+        html +=`</div>`;
+    })
+    document.getElementById("gloryList").innerHTML = html;
+    document.getElementById("gloryEditArea").classList.add("hidden");
+}
+function openAddGlory(){
+    document.getElementById("editGloryId").value="";
+    document.getElementById("gloryTitle").value="";
+    document.getElementById("gloryTime").value="";
+    document.getElementById("gloryContent").value="";
+    document.getElementById("gloryEditArea").classList.remove("hidden");
+}
+function editGlory(id){
+    const list = getGloryData();
+    const item = list.find(x=>x.id===id);
+    if(!item)return;
+    document.getElementById("editGloryId").value = item.id;
+    document.getElementById("gloryTitle").value = item.title;
+    document.getElementById("gloryTime").value = item.time;
+    document.getElementById("gloryContent").value = item.content;
+    document.getElementById("gloryEditArea").classList.remove("hidden");
+}
+function saveGlory(){
+    if(!isAdmin) return;
+    const eid = document.getElementById("editGloryId").value;
+    let arr = getGloryData();
+    const obj={
+        id:eid||"gl_"+Date.now(),
+        title:document.getElementById("gloryTitle").value.trim(),
+        time:document.getElementById("gloryTime").value.trim(),
+        content:document.getElementById("gloryContent").value.trim()
+    }
+    if(!obj.title){alert("标题不能为空");return;}
+    if(eid){
+        const idx = arr.findIndex(x=>x.id===eid);
+        arr[idx]=obj;
+    }else{
+        arr.push(obj);
+    }
+    localStorage.setItem("family_glory",JSON.stringify(arr));
+    renderGlory();
+}
+function delGlory(id){
+    if(!confirm("确定删除这条史记？"))return;
+    let arr = getGloryData().filter(x=>x.id!==id);
+    localStorage.setItem("family_glory",JSON.stringify(arr));
+    renderGlory();
+}
+window.onload=()=>{
+    initStorage();
+    switchPage("home");
+    refreshAuthUi();
+}
+</script>
+</body>
+</html>
