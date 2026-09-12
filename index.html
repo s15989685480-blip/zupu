@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>帅氏族谱 - 网页版</title>
-    <!-- CDN，无网络时PDF功能失效，基础族谱录入查看完全可用 -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
@@ -30,7 +29,6 @@
             border:1px solid #c9b9a3;
             padding:32px 24px;
         }
-        /*登录弹窗*/
         .lock-wrap {
             position:fixed;
             inset:0;
@@ -205,12 +203,10 @@
     </style>
 </head>
 <body>
-    <!--登录弹窗-->
     <div class="lock-wrap" id="lockModal">
         <div class="lock-box">
             <h2>族谱访问验证</h2>
             <input type="password" id="passInput" placeholder="输入秘钥">
-            <div class="tip">初始秘钥：zupu123</div>
             <br>
             <button onclick="checkSecretKey()">进入族谱</button>
         </div>
@@ -251,8 +247,8 @@
                         <input id="mTitle" placeholder="始祖/祖父等">
                     </div>
                     <div class="form-item">
-                        <label>父辈ID（始祖留空）</label>
-                        <input id="mFatherId" placeholder="上级族人ID">
+                        <label>父辈数字ID（始祖留空）</label>
+                        <input id="mFatherId" placeholder="只填数字，始祖不填">
                     </div>
                     <div class="form-item">
                         <label>生卒年份</label>
@@ -263,7 +259,7 @@
                         <input id="mRemark" placeholder="事迹、迁居">
                     </div>
                     <button onclick="submitMember()">保存录入</button>
-                    <div class="tip">⚠️保存后复制ID，用于添加子女</div>
+                    <div class="tip">💡录入完成会显示数字ID，子女直接填这个数字即可</div>
                 </div>
 
                 <div class="tree-wrap" id="treeContainer">
@@ -283,10 +279,10 @@
         let appData = {
             secretKey:"zupu123",
             familyTitle:"帅氏族谱",
+            nextId:1,
             memberList:[]
         };
 
-        //读取本地存储
         function loadStorage(){
             const s = localStorage.getItem("zupu_data");
             if(s){
@@ -301,7 +297,6 @@
             localStorage.setItem("zupu_data",JSON.stringify(appData));
         }
 
-        //秘钥校验
         function checkSecretKey(){
             const pwd = document.getElementById("passInput").value.trim();
             if(pwd === appData.secretKey){
@@ -333,10 +328,7 @@
             document.getElementById("familyTitleInput").value = appData.familyTitle;
             document.title = appData.familyTitle;
         }
-        function getNewId(){
-            return Date.now().toString(36)+Math.random().toString(36).slice(2);
-        }
-        //清空表单
+
         function addMember(){
             document.getElementById("mName").value="";
             document.getElementById("mSpouse").value="";
@@ -345,25 +337,28 @@
             document.getElementById("mLife").value="";
             document.getElementById("mRemark").value="";
         }
-        //提交族人
+
         function submitMember(){
             const name = document.getElementById("mName").value.trim();
             if(!name){alert("姓名不能为空");return;}
+            const fatherInput = document.getElementById("mFatherId").value.trim();
+            const fatherId = fatherInput === "" ? "" : Number(fatherInput);
+
             const item = {
-                id:getNewId(),
+                id: appData.nextId++,
                 name:name,
                 spouse:document.getElementById("mSpouse").value.trim(),
                 title:document.getElementById("mTitle").value.trim(),
-                fatherId:document.getElementById("mFatherId").value.trim(),
+                fatherId: fatherId,
                 life:document.getElementById("mLife").value.trim(),
                 remark:document.getElementById("mRemark").value.trim()
             };
             appData.memberList.push(item);
             saveLocal();
             renderTree();
-            alert(`录入成功，ID：${item.id}`);
+            alert(`录入成功！本条数字ID：${item.id}`);
         }
-        //删除族人
+
         function delPerson(id){
             if(!confirm("确定删除该族人，下属子女也会丢失！"))return;
             function removeRecursive(pid){
@@ -375,10 +370,10 @@
             saveLocal();
             renderTree();
         }
-        //渲染族谱树
+
         function renderTree(){
             const inner = document.getElementById("treeInner");
-            const rootList = appData.memberList.filter(m=>!m.fatherId);
+            const rootList = appData.memberList.filter(m=>m.fatherId==="" || m.fatherId===null);
             function buildNode(p){
                 let html = `<div class="person-card">`;
                 html += `<div class="couple-box">`;
@@ -388,7 +383,7 @@
                 html +=`</div>`;
                 if(p.life) html +=`<div>生卒：${p.life}</div>`;
                 if(p.remark) html +=`<div>简介：${p.remark}</div>`;
-                html +=`<div class="tip">ID:${p.id} <span class="del-btn" onclick="delPerson('${p.id}')">【删除本条及后代】</span></div>`;
+                html +=`<div class="tip">数字ID:${p.id} <span class="del-btn" onclick="delPerson(${p.id})">【删除本条及后代】</span></div>`;
                 html +=`</div>`;
                 const kids = appData.memberList.filter(k=>k.fatherId===p.id);
                 if(kids.length>0){
@@ -406,7 +401,7 @@
                 inner.innerHTML = outHtml;
             }
         }
-        //导出json备份
+
         function exportJson(){
             const text = JSON.stringify(appData,null,2);
             const blob = new Blob([text],{type:"application/json"});
@@ -415,7 +410,7 @@
             a.download = appData.familyTitle+"_备份.json";
             a.click();
         }
-        //导入json备份
+
         function importJson(){
             const fileDom = document.getElementById("fileInput");
             fileDom.onchange = function(e){
@@ -440,7 +435,7 @@
             };
             fileDom.click();
         }
-        //导出PDF（无网络时会失效，基础功能不受影响）
+
         async function exportPdf(){
             if(!window.jspdf || !window.html2canvas){
                 alert("无网络，无法加载PDF组件，可导出JSON备份");
