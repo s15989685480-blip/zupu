@@ -301,13 +301,26 @@
             if(s){
                 try{
                     appData = JSON.parse(s);
+                    // 统一把id和fatherId转为数字，修复旧备份字符串ID问题
+                    appData.memberList.forEach(m=>{
+                        m.id = Number(m.id);
+                        if(m.fatherId !== "" && m.fatherId !== null){
+                            m.fatherId = Number(m.fatherId);
+                        }
+                    })
                 }catch(e){
                     console.log("无旧数据");
                 }
             }
         }
         function saveLocal(){
-            localStorage.setItem("zupu_data",JSON.stringify(appData));
+            try{
+                localStorage.setItem("zupu_data",JSON.stringify(appData));
+                return true;
+            }catch(e){
+                alert("本地存储失败！存储空间已满，请先导出JSON备份后清理浏览器缓存");
+                return false;
+            }
         }
 
         function checkSecretKey(){
@@ -356,7 +369,7 @@
 
         //编辑：把数据回填表单
         function editPerson(id){
-            const item = appData.memberList.find(x=>x.id===id);
+            const item = appData.memberList.find(x=>x.id == id);
             if(!item) return;
             document.getElementById("editId").value = id;
             document.getElementById("formTitle").innerText = "修改族人信息";
@@ -372,12 +385,22 @@
             const name = document.getElementById("mName").value.trim();
             if(!name){alert("姓名不能为空");return;}
             const fatherInput = document.getElementById("mFatherId").value.trim();
-            const fatherId = fatherInput === "" ? "" : Number(fatherInput);
+            let fatherId = fatherInput === "" ? "" : Number(fatherInput);
+
+            //校验父辈ID是否存在（非始祖时）
+            if(fatherInput !== ""){
+                const fatherExist = appData.memberList.some(m=> m.id == fatherId);
+                if(!fatherExist){
+                    alert(`父辈ID【${fatherId}】不存在，请确认！`);
+                    return;
+                }
+            }
+
             const editIdVal = document.getElementById("editId").value;
 
             //编辑模式
             if(editIdVal){
-                const idx = appData.memberList.findIndex(x=>x.id===Number(editIdVal));
+                const idx = appData.memberList.findIndex(x=>x.id == Number(editIdVal));
                 if(idx===-1) return;
                 appData.memberList[idx].name = name;
                 appData.memberList[idx].spouse = document.getElementById("mSpouse").value.trim();
@@ -406,13 +429,14 @@
             saveLocal();
             renderTree();
             alert(`录入成功！本条数字ID：${item.id}`);
+            resetForm();
         }
 
         function delPerson(id){
             if(!confirm("确定删除该族人，下属子女也会丢失！"))return;
             function removeRecursive(pid){
-                appData.memberList = appData.memberList.filter(m=>m.id!==pid);
-                const children = appData.memberList.filter(x=>x.fatherId===pid);
+                appData.memberList = appData.memberList.filter(m=>m.id != pid);
+                const children = appData.memberList.filter(x=>x.fatherId == pid);
                 children.forEach(c=>removeRecursive(c.id));
             }
             removeRecursive(id);
@@ -438,7 +462,7 @@
                     <span class="del-btn" onclick="delPerson(${p.id})">【删除本条及后代】</span>
                 </div>`;
                 html +=`</div>`;
-                const kids = appData.memberList.filter(k=>k.fatherId===p.id);
+                const kids = appData.memberList.filter(k=>k.fatherId == p.id);
                 if(kids.length>0){
                     html +=`<div class="children">`;
                     kids.forEach(k=>html += buildNode(k));
@@ -474,6 +498,13 @@
                     try{
                         const data = JSON.parse(ev.target.result);
                         if(confirm("导入将覆盖当前所有数据，确定吗？")){
+                            //导入后自动全部转为数字ID
+                            data.memberList.forEach(m=>{
+                                m.id = Number(m.id);
+                                if(m.fatherId !== "" && m.fatherId !== null){
+                                    m.fatherId = Number(m.fatherId);
+                                }
+                            })
                             appData = data;
                             saveLocal();
                             renderFamilyTitle();
@@ -486,7 +517,6 @@
                 };
                 reader.readAsText(f);
             };
-            fileDom.click();
         }
 
         async function exportPdf(){
