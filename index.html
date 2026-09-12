@@ -209,6 +209,13 @@
             color:#66523c;
             margin-top:6px;
         }
+        .warn{
+            background:#ffeeee;
+            color:#a00;
+            padding:8px;
+            margin-bottom:10px;
+            border-radius:4px;
+        }
     </style>
 </head>
 <body>
@@ -223,6 +230,7 @@
 
     <div class="container hidden" id="mainApp">
         <div class="book-paper">
+            <div class="warn">⚠️ 建议先【导出备份】；本地html文件直接双击打开(file协议)部分浏览器会禁止存储，推荐用浏览器打开本地服务。</div>
             <header>
                 <h1 id="familyTitle">帅氏族谱</h1>
                 <div class="sub-title">木本水源 慎终追远 世代绵延</div>
@@ -238,6 +246,7 @@
                 <button onclick="importJson()">📥导入备份</button>
                 <button onclick="exportPdf()">📄导出PDF</button>
                 <button onclick="openKeySetting()">🔑修改秘钥</button>
+                <button onclick="clearAllData()" style="background:#b32424;color:#fff;">🗑️清空全部族谱数据</button>
             </div>
 
             <div class="main-row">
@@ -296,20 +305,43 @@
             memberList:[]
         };
 
+        function clearAllData(){
+            if(!confirm("确定清空所有族谱数据？清空前务必导出备份！")) return;
+            localStorage.removeItem("zupu_data");
+            appData = {
+                secretKey:"zupu123",
+                familyTitle:"帅氏族谱",
+                nextId:1,
+                memberList:[]
+            };
+            renderFamilyTitle();
+            renderTree();
+            resetForm();
+            alert("数据已清空");
+        }
+
         function loadStorage(){
             const s = localStorage.getItem("zupu_data");
             if(s){
                 try{
                     appData = JSON.parse(s);
-                    // 统一把id和fatherId转为数字，修复旧备份字符串ID问题
                     appData.memberList.forEach(m=>{
                         m.id = Number(m.id);
                         if(m.fatherId !== "" && m.fatherId !== null){
                             m.fatherId = Number(m.fatherId);
                         }
                     })
+                    //自动修复nextId，防止ID冲突
+                    if(appData.memberList.length>0){
+                        const maxId = Math.max(...appData.memberList.map(i=>i.id));
+                        appData.nextId = maxId + 1;
+                    }else{
+                        appData.nextId = 1;
+                    }
                 }catch(e){
-                    console.log("无旧数据");
+                    console.error("读取本地数据异常：",e);
+                    alert("旧数据损坏，已重置为空族谱！建议导入之前导出的JSON备份");
+                    localStorage.removeItem("zupu_data");
                 }
             }
         }
@@ -318,13 +350,20 @@
                 localStorage.setItem("zupu_data",JSON.stringify(appData));
                 return true;
             }catch(e){
-                alert("本地存储失败！存储空间已满，请先导出JSON备份后清理浏览器缓存");
+                console.error("存储失败",e);
+                if(e.name === "QuotaExceededError"){
+                    alert("❌本地存储空间已满！请先导出JSON备份，再清空部分旧数据");
+                }else{
+                    alert("❌存储失败！无痕隐私模式或本地file打开会禁用存储，请切换普通浏览器窗口");
+                }
                 return false;
             }
         }
 
         function checkSecretKey(){
-            const pwd = document.getElementById("passInput").value.trim();
+            const pwdDom = document.getElementById("passInput");
+            if(!pwdDom) return;
+            const pwd = pwdDom.value.trim();
             if(pwd === appData.secretKey){
                 document.getElementById("lockModal").classList.add("hidden");
                 document.getElementById("mainApp").classList.remove("hidden");
@@ -343,31 +382,41 @@
             }
         }
         function changeFamilyTitle(){
-            const val = document.getElementById("familyTitleInput").value.trim();
+            const inputDom = document.getElementById("familyTitleInput");
+            const val = inputDom.value.trim();
             if(!val){alert("名称不能为空");return;}
             appData.familyTitle = val;
             saveLocal();
             renderFamilyTitle();
         }
         function renderFamilyTitle(){
-            document.getElementById("familyTitle").innerText = appData.familyTitle;
-            document.getElementById("familyTitleInput").value = appData.familyTitle;
+            const titleDom = document.getElementById("familyTitle");
+            const inputDom = document.getElementById("familyTitleInput");
+            if(titleDom) titleDom.innerText = appData.familyTitle;
+            if(inputDom) inputDom.value = appData.familyTitle;
             document.title = appData.familyTitle;
         }
 
-        //重置表单，切换新增模式
         function resetForm(){
-            document.getElementById("editId").value = "";
-            document.getElementById("formTitle").innerText = "录入族人信息";
-            document.getElementById("mName").value="";
-            document.getElementById("mSpouse").value="";
-            document.getElementById("mTitle").value="";
-            document.getElementById("mFatherId").value="";
-            document.getElementById("mLife").value="";
-            document.getElementById("mRemark").value="";
+            const editIdDom = document.getElementById("editId");
+            const formTitleDom = document.getElementById("formTitle");
+            const mNameDom = document.getElementById("mName");
+            const mSpouseDom = document.getElementById("mSpouse");
+            const mTitleDom = document.getElementById("mTitle");
+            const mFatherIdDom = document.getElementById("mFatherId");
+            const mLifeDom = document.getElementById("mLife");
+            const mRemarkDom = document.getElementById("mRemark");
+
+            if(editIdDom) editIdDom.value = "";
+            if(formTitleDom) formTitleDom.innerText = "录入族人信息";
+            if(mNameDom) mNameDom.value="";
+            if(mSpouseDom) mSpouseDom.value="";
+            if(mTitleDom) mTitleDom.value="";
+            if(mFatherIdDom) mFatherIdDom.value="";
+            if(mLifeDom) mLifeDom.value="";
+            if(mRemarkDom) mRemarkDom.value="";
         }
 
-        //编辑：把数据回填表单
         function editPerson(id){
             const item = appData.memberList.find(x=>x.id == id);
             if(!item) return;
@@ -376,19 +425,35 @@
             document.getElementById("mName").value = item.name;
             document.getElementById("mSpouse").value = item.spouse;
             document.getElementById("mTitle").value = item.title;
-            document.getElementById("mFatherId").value = item.fatherId??"";
+            document.getElementById("mFatherId").value = item.fatherId ?? "";
             document.getElementById("mLife").value = item.life;
             document.getElementById("mRemark").value = item.remark;
         }
 
         function submitMember(){
-            const name = document.getElementById("mName").value.trim();
-            if(!name){alert("姓名不能为空");return;}
-            const fatherInput = document.getElementById("mFatherId").value.trim();
-            let fatherId = fatherInput === "" ? "" : Number(fatherInput);
+            console.log("=====开始执行保存函数 submitMember =====");
+            const mNameDom = document.getElementById("mName");
+            const mSpouseDom = document.getElementById("mSpouse");
+            const mTitleDom = document.getElementById("mTitle");
+            const mFatherIdDom = document.getElementById("mFatherId");
+            const mLifeDom = document.getElementById("mLife");
+            const mRemarkDom = document.getElementById("mRemark");
+            const editIdDom = document.getElementById("editId");
 
-            //校验父辈ID是否存在（非始祖时）
+            if(!mNameDom){
+                alert("页面元素缺失，请刷新页面重试");
+                return;
+            }
+            const name = mNameDom.value.trim();
+            if(!name){alert("姓名不能为空");return;}
+            const fatherInput = mFatherIdDom.value.trim();
+            let fatherId = "";
             if(fatherInput !== ""){
+                fatherId = Number(fatherInput);
+                if(isNaN(fatherId)){
+                    alert("父辈ID必须是纯数字！");
+                    return;
+                }
                 const fatherExist = appData.memberList.some(m=> m.id == fatherId);
                 if(!fatherExist){
                     alert(`父辈ID【${fatherId}】不存在，请确认！`);
@@ -396,22 +461,29 @@
                 }
             }
 
-            const editIdVal = document.getElementById("editId").value;
+            const editIdVal = editIdDom.value;
+            console.log("editIdVal：",editIdVal);
 
             //编辑模式
             if(editIdVal){
-                const idx = appData.memberList.findIndex(x=>x.id == Number(editIdVal));
-                if(idx===-1) return;
+                const editIdNum = Number(editIdVal);
+                const idx = appData.memberList.findIndex(x=>x.id == editIdNum);
+                if(idx === -1){
+                    alert("找不到要修改的记录");
+                    return;
+                }
                 appData.memberList[idx].name = name;
-                appData.memberList[idx].spouse = document.getElementById("mSpouse").value.trim();
-                appData.memberList[idx].title = document.getElementById("mTitle").value.trim();
+                appData.memberList[idx].spouse = mSpouseDom.value.trim();
+                appData.memberList[idx].title = mTitleDom.value.trim();
                 appData.memberList[idx].fatherId = fatherId;
-                appData.memberList[idx].life = document.getElementById("mLife").value.trim();
-                appData.memberList[idx].remark = document.getElementById("mRemark").value.trim();
-                saveLocal();
-                renderTree();
-                alert("修改保存成功");
-                resetForm();
+                appData.memberList[idx].life = mLifeDom.value.trim();
+                appData.memberList[idx].remark = mRemarkDom.value.trim();
+                const ok = saveLocal();
+                if(ok){
+                    renderTree();
+                    alert("✅修改保存成功");
+                    resetForm();
+                }
                 return;
             }
 
@@ -419,17 +491,23 @@
             const item = {
                 id: appData.nextId++,
                 name:name,
-                spouse:document.getElementById("mSpouse").value.trim(),
-                title:document.getElementById("mTitle").value.trim(),
+                spouse:mSpouseDom.value.trim(),
+                title:mTitleDom.value.trim(),
                 fatherId: fatherId,
-                life:document.getElementById("mLife").value.trim(),
-                remark:document.getElementById("mRemark").value.trim()
+                life:mLifeDom.value.trim(),
+                remark:mRemarkDom.value.trim()
             };
             appData.memberList.push(item);
-            saveLocal();
-            renderTree();
-            alert(`录入成功！本条数字ID：${item.id}`);
-            resetForm();
+            const ok = saveLocal();
+            if(ok){
+                renderTree();
+                alert(`✅录入成功！本条数字ID：${item.id}`);
+                resetForm();
+            }else{
+                //保存失败，回滚数据，删除刚新增的记录
+                appData.memberList.pop();
+                appData.nextId--;
+            }
         }
 
         function delPerson(id){
@@ -447,6 +525,7 @@
 
         function renderTree(){
             const inner = document.getElementById("treeInner");
+            if(!inner) return;
             const rootList = appData.memberList.filter(m=>m.fatherId==="" || m.fatherId===null);
             function buildNode(p){
                 let html = `<div class="person-card">`;
@@ -498,25 +577,32 @@
                     try{
                         const data = JSON.parse(ev.target.result);
                         if(confirm("导入将覆盖当前所有数据，确定吗？")){
-                            //导入后自动全部转为数字ID
                             data.memberList.forEach(m=>{
                                 m.id = Number(m.id);
                                 if(m.fatherId !== "" && m.fatherId !== null){
                                     m.fatherId = Number(m.fatherId);
                                 }
                             })
+                            if(data.memberList.length>0){
+                                const maxId = Math.max(...data.memberList.map(i=>i.id));
+                                data.nextId = maxId + 1;
+                            }else{
+                                data.nextId = 1;
+                            }
                             appData = data;
                             saveLocal();
                             renderFamilyTitle();
                             renderTree();
-                            alert("导入成功");
+                            alert("✅导入成功");
                         }
                     }catch(err){
-                        alert("文件解析失败，不是合法备份");
+                        console.error(err);
+                        alert("❌文件解析失败，不是合法备份");
                     }
                 };
                 reader.readAsText(f);
             };
+            fileDom.click();
         }
 
         async function exportPdf(){
