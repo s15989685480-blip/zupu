@@ -158,6 +158,10 @@
             margin-top:6px;
             cursor:pointer;
         }
+        .btn-group{
+            display:flex;gap:8px;
+        }
+        .btn-group button{flex:1;}
         .tree-wrap{
             min-height:550px;
             overflow-x:auto;
@@ -184,8 +188,13 @@
             margin-top:4px;
             font-size:14px;
         }
+        .edit-btn{
+            margin-right:8px;
+            font-size:12px;
+            color:#2457b3;
+            cursor:pointer;
+        }
         .del-btn{
-            margin-top:6px;
             font-size:12px;
             color:#b32424;
             cursor:pointer;
@@ -224,7 +233,7 @@
             </header>
 
             <div class="toolbar">
-                <button onclick="addMember()">➕新增族人</button>
+                <button onclick="resetForm()">➕新增族人</button>
                 <button onclick="exportJson()">💾导出备份(json)</button>
                 <button onclick="importJson()">📥导入备份</button>
                 <button onclick="exportPdf()">📄导出PDF</button>
@@ -233,7 +242,8 @@
 
             <div class="main-row">
                 <div class="form-card">
-                    <h3>录入族人信息</h3>
+                    <h3 id="formTitle">录入族人信息</h3>
+                    <input type="hidden" id="editId">
                     <div class="form-item">
                         <label>姓名</label>
                         <input id="mName" placeholder="必填">
@@ -258,7 +268,10 @@
                         <label>生平备注</label>
                         <input id="mRemark" placeholder="事迹、迁居">
                     </div>
-                    <button onclick="submitMember()">保存录入</button>
+                    <div class="btn-group">
+                        <button onclick="submitMember()">保存</button>
+                        <button onclick="resetForm()" style="background:#666;">取消编辑</button>
+                    </div>
                     <div class="tip">💡录入完成会显示数字ID，子女直接填这个数字即可</div>
                 </div>
 
@@ -329,7 +342,10 @@
             document.title = appData.familyTitle;
         }
 
-        function addMember(){
+        //重置表单，切换新增模式
+        function resetForm(){
+            document.getElementById("editId").value = "";
+            document.getElementById("formTitle").innerText = "录入族人信息";
             document.getElementById("mName").value="";
             document.getElementById("mSpouse").value="";
             document.getElementById("mTitle").value="";
@@ -338,12 +354,45 @@
             document.getElementById("mRemark").value="";
         }
 
+        //编辑：把数据回填表单
+        function editPerson(id){
+            const item = appData.memberList.find(x=>x.id===id);
+            if(!item) return;
+            document.getElementById("editId").value = id;
+            document.getElementById("formTitle").innerText = "修改族人信息";
+            document.getElementById("mName").value = item.name;
+            document.getElementById("mSpouse").value = item.spouse;
+            document.getElementById("mTitle").value = item.title;
+            document.getElementById("mFatherId").value = item.fatherId??"";
+            document.getElementById("mLife").value = item.life;
+            document.getElementById("mRemark").value = item.remark;
+        }
+
         function submitMember(){
             const name = document.getElementById("mName").value.trim();
             if(!name){alert("姓名不能为空");return;}
             const fatherInput = document.getElementById("mFatherId").value.trim();
             const fatherId = fatherInput === "" ? "" : Number(fatherInput);
+            const editIdVal = document.getElementById("editId").value;
 
+            //编辑模式
+            if(editIdVal){
+                const idx = appData.memberList.findIndex(x=>x.id===Number(editIdVal));
+                if(idx===-1) return;
+                appData.memberList[idx].name = name;
+                appData.memberList[idx].spouse = document.getElementById("mSpouse").value.trim();
+                appData.memberList[idx].title = document.getElementById("mTitle").value.trim();
+                appData.memberList[idx].fatherId = fatherId;
+                appData.memberList[idx].life = document.getElementById("mLife").value.trim();
+                appData.memberList[idx].remark = document.getElementById("mRemark").value.trim();
+                saveLocal();
+                renderTree();
+                alert("修改保存成功");
+                resetForm();
+                return;
+            }
+
+            //新增模式
             const item = {
                 id: appData.nextId++,
                 name:name,
@@ -369,6 +418,7 @@
             removeRecursive(id);
             saveLocal();
             renderTree();
+            resetForm();
         }
 
         function renderTree(){
@@ -383,7 +433,10 @@
                 html +=`</div>`;
                 if(p.life) html +=`<div>生卒：${p.life}</div>`;
                 if(p.remark) html +=`<div>简介：${p.remark}</div>`;
-                html +=`<div class="tip">数字ID:${p.id} <span class="del-btn" onclick="delPerson(${p.id})">【删除本条及后代】</span></div>`;
+                html +=`<div class="tip">数字ID:${p.id}
+                    <span class="edit-btn" onclick="editPerson(${p.id})">【编辑】</span>
+                    <span class="del-btn" onclick="delPerson(${p.id})">【删除本条及后代】</span>
+                </div>`;
                 html +=`</div>`;
                 const kids = appData.memberList.filter(k=>k.fatherId===p.id);
                 if(kids.length>0){
@@ -463,3 +516,4 @@
     </script>
 </body>
 </html>
+
