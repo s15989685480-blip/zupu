@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>家族族谱 - 复古版</title>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -12,358 +12,461 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            font-family: "SimSun", "宋体", serif;
+            font-family: "SimSun", "宋体", "STSong", serif;
             background: #f3e9d8;
-            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d4c8b4' fill-opacity='0.2' fill-rule='evenodd'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d4c8b4' fill-opacity='0.2' fill-rule='evenodd/%3E%3C/svg%3E");
             color: #4b2e1b;
+            padding: 10px;
         }
+
         /* 秘钥登录弹窗 */
         .lock-wrap {
             position: fixed;
             inset: 0;
-            background-color: rgba(0,0,0,0.65);
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            z-index:999;
-        }
-        .lock-box{
-            background:#f7efe0;
-            border:3px solid #8b5a2b;
-            padding:32px;
-            border-radius:8px;
-            box-shadow:0 0 20px #0004;
-            min-width:320px;
-        }
-        .lock-box h2{
-            text-align:center;
-            margin-bottom:20px;
-            color:#603813;
-        }
-        .lock-box input{
-            width:100%;
-            padding:10px 14px;
-            font-size:16px;
-            border:1px solid #b8976c;
-            background:#fff9ee;
-            border-radius:4px;
-            margin-bottom:16px;
-        }
-        .lock-box button{
-            width:100%;
-            padding:11px;
-            background:#8b5a2b;
-            color:#fff;
-            border:none;
-            font-size:16px;
-            border-radius:4px;
-            cursor:pointer;
-        }
-        .hidden{
-            display:none !important;
+            background-color: rgba(0, 0, 0, 0.65);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 16px;
         }
 
-        .container{
-            max-width:1200px;
-            margin:0 auto;
-            padding:24px 16px;
+        .lock-box {
+            background: #f7efe0;
+            border: 3px solid #8b5a2b;
+            padding: 28px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px #0004;
+            width: 100%;
+            max-width: 360px;
         }
-        header{
-            text-align:center;
-            padding:20px 0;
-            border-bottom:2px double #8b5a2b;
-            margin-bottom:24px;
+
+        .lock-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #603813;
+            font-size: 20px;
         }
-        h1{
-            font-size:32px;
-            letter-spacing:6px;
+
+        .lock-box input {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 16px;
+            border: 1px solid #b8976c;
+            background: #fff9ee;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-family: inherit;
         }
-        .toolbar{
-            display:flex;
-            flex-wrap:wrap;
-            gap:10px;
-            margin-bottom:20px;
+
+        .lock-box button {
+            width: 100%;
+            padding: 11px;
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
         }
-        button{
-            padding:8px 14px;
-            border:1px solid #8b5a2b;
-            background:#e9d9c2;
-            color:#4b2e1b;
-            border-radius:4px;
-            cursor:pointer;
-            font-family:SimSun,serif;
+
+        .hidden {
+            display: none !important;
         }
-        button:hover{
-            background:#d9c4a7;
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px 4px 20px;
         }
-        .panel-row{
-            display:grid;
-            grid-template-columns: 340px 1fr;
-            gap:20px;
+
+        header {
+            text-align: center;
+            padding: 16px 10px;
+            border-bottom: 2px double #8b5a2b;
+            margin-bottom: 16px;
         }
-        .form-card{
-            background:#f9f2e4;
-            border:2px solid #b8976c;
-            padding:18px;
-            border-radius:6px;
+
+        h1 {
+            font-size: 26px;
+            letter-spacing: 4px;
+            word-break: break-word;
         }
-        .form-card h3{
-            margin-bottom:14px;
-            border-bottom:1px solid #c8b294;
-            padding-bottom:6px;
+
+        .sub-title {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #7a5a3b;
         }
-        .form-item{
-            margin-bottom:10px;
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
         }
-        label{
-            display:block;
-            margin-bottom:4px;
+
+        button {
+            padding: 9px 12px;
+            border: 1px solid #8b5a2b;
+            background: #e9d9c2;
+            color: #4b2e1b;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
         }
-        input,select{
-            width:100%;
-            padding:7px 9px;
-            border:1px solid #c2ac8e;
-            background:#fffaf1;
-            border-radius:3px;
+
+        button:hover {
+            background: #d9c4a7;
         }
-        /* 族谱树区域 */
-        .tree-wrap{
-            background:#fff9ee;
-            border:2px solid #b8976c;
-            padding:20px;
-            min-height:600px;
-            overflow:auto;
+
+        .panel-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
         }
-        .person-card{
-            border:1px solid #8b5a2b;
-            background:#fff6e6;
-            padding:10px;
-            border-radius:4px;
-            margin:6px 0;
+
+        @media (min-width: 900px) {
+            .panel-row {
+                grid-template-columns: 340px 1fr;
+            }
         }
-        .couple-box{
-            display:flex;
-            gap:8px;
-            align-items:center;
+
+        .form-card {
+            background: #f9f2e4;
+            border: 2px solid #b8976c;
+            padding: 16px;
+            border-radius: 6px;
         }
-        .divider-heart{
-            color:#944;
+
+        .form-card h3 {
+            margin-bottom: 12px;
+            border-bottom: 1px solid #c8b294;
+            padding-bottom: 6px;
+            font-size: 16px;
         }
-        .children{
-            margin-left:24px;
-            border-left:1px dashed #8b5a2b;
-            padding-left:14px;
+
+        .form-item {
+            margin-bottom: 10px;
         }
-        .tip{
-            font-size:13px;
-            color:#70533b;
-            margin:8px 0;
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #c2ac8e;
+            background: #fffaf1;
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .tree-wrap {
+            background: #fff9ee;
+            border: 2px solid #b8976c;
+            padding: 16px;
+            min-height: 560px;
+            overflow-x: auto;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tree-inner {
+            min-width: 640px;
+            padding: 10px;
+        }
+
+        .person-card {
+            border: 1px solid #8b5a2b;
+            background: #fff6e6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 6px 0;
+            font-size: 14px;
+        }
+
+        .couple-box {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .divider-heart {
+            color: #944;
+        }
+
+        .children {
+            margin-left: 24px;
+            border-left: 1px dashed #8b5a2b;
+            padding-left: 14px;
+        }
+
+        .tip {
+            font-size: 13px;
+            color: #70533b;
+            margin: 8px 0;
+        }
+
+        .key-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .key-row input {
+            flex: 1;
         }
     </style>
 </head>
 <body>
-<!-- 秘钥登录 -->
-<div class="lock-wrap" id="lockModal">
-    <div class="lock-box">
-        <h2>🔐 家族族谱访问验证</h2>
-        <input type="password" id="passInput" placeholder="请输入访问秘钥">
-        <button onclick="checkSecretKey()">确认进入</button>
-    </div>
-</div>
-
-<div class="container hidden" id="mainApp">
-    <header>
-        <h1>家族族谱</h1>
-    </header>
-    <div class="toolbar">
-        <button onclick="addMember()">➕ 添加家族成员</button>
-        <button onclick="exportPdf()">📄 导出PDF族谱</button>
-        <button onclick="openKeySetting()">🔑 修改访问秘钥</button>
-        <button onclick="saveLocal()">💾保存数据</button>
-    </div>
-
-    <div class="panel-row">
-        <div class="form-card">
-            <h3>成员编辑</h3>
-            <div class="form-item">
-                <label>姓名</label>
-                <input id="mName">
-            </div>
-            <div class="form-item">
-                <label>配偶姓名（无则留空）</label>
-                <input id="mSpouse">
-            </div>
-            <div class="form-item">
-                <label>辈分/称谓</label>
-                <input id="mTitle" placeholder="例：祖父、曾祖">
-            </div>
-            <div class="form-item">
-                <label>父亲ID（根祖先留空）</label>
-                <input id="mFatherId" placeholder="填写父亲编号">
-            </div>
-            <div class="form-item">
-                <label>生卒信息</label>
-                <input id="mLife" placeholder="如：1900‑1965">
-            </div>
-            <div class="form-item">
-                <label>备注</label>
-                <input id="mRemark">
-            </div>
-            <button onclick="submitMember()">保存成员</button>
-            <div class="tip">新增后会自动生成ID，用于子女绑定父亲</div>
-        </div>
-
-        <div class="tree-wrap" id="treeContainer">
-            <div class="tip">请添加家族始祖开始构建族谱，支持录入配偶，父子层级自动渲染</div>
+    <!-- 秘钥登录 -->
+    <div class="lock-wrap" id="lockModal">
+        <div class="lock-box">
+            <h2>🔐 家族族谱访问验证</h2>
+            <input type="password" id="passInput" placeholder="请输入访问秘钥">
+            <div class="tip">默认秘钥：zupu123</div>
+            <button onclick="checkSecretKey()">确认进入</button>
         </div>
     </div>
-</div>
 
-<script>
-// 默认配置
-let appData = {
-    secretKey:"zupu123",
-    memberList:[]
-};
+    <div class="container hidden" id="mainApp">
+        <header>
+            <h1 id="familyTitle">家族族谱</h1>
+            <div class="sub-title" id="familySubtitle">追溯家族渊源，记录世代传承</div>
 
-// 读取本地存储
-function loadStorage(){
-    const raw = localStorage.getItem("gu_zupu_data");
-    if(raw){
-        appData = JSON.parse(raw);
-    }
-}
-function saveLocal(){
-    localStorage.setItem("gu_zupu_data",JSON.stringify(appData));
-    alert("已保存到本地浏览器");
-}
+            <div class="key-row">
+                <input type="text" id="familyTitleInput" placeholder="修改族谱抬头，如：帅氏族谱">
+                <button onclick="changeFamilyTitle()">修改抬头</button>
+            </div>
+        </header>
 
-//秘钥校验
-function checkSecretKey(){
-    const inputVal = document.getElementById("passInput").value.trim();
-    if(inputVal === appData.secretKey){
-        document.getElementById("lockModal").classList.add("hidden");
-        document.getElementById("mainApp").classList.remove("hidden");
-        renderTree();
-    }else{
-        alert("秘钥错误，请重新输入");
-    }
-}
+        <div class="toolbar">
+            <button onclick="addMember()">➕ 添加家族成员</button>
+            <button onclick="exportPdf()">📄 导出PDF族谱</button>
+            <button onclick="openKeySetting()">🔑 修改访问秘钥</button>
+            <button onclick="saveLocal()">💾 保存数据</button>
+        </div>
 
-//修改秘钥弹窗
-function openKeySetting(){
-    const newK = prompt("请输入新的访问秘钥",appData.secretKey);
-    if(newK && newK.trim()){
-        appData.secretKey = newK.trim();
-        saveLocal();
-        alert("秘钥修改成功，请记住新秘钥！");
-    }
-}
+        <div class="panel-row">
+            <div class="form-card">
+                <h3>成员编辑</h3>
+                <div class="form-item">
+                    <label>姓名</label>
+                    <input id="mName">
+                </div>
+                <div class="form-item">
+                    <label>配偶姓名（无则留空）</label>
+                    <input id="mSpouse">
+                </div>
+                <div class="form-item">
+                    <label>辈分/称谓</label>
+                    <input id="mTitle" placeholder="例：祖父、曾祖">
+                </div>
+                <div class="form-item">
+                    <label>父亲ID（根祖先留空）</label>
+                    <input id="mFatherId" placeholder="填写父亲编号">
+                </div>
+                <div class="form-item">
+                    <label>生卒信息</label>
+                    <input id="mLife" placeholder="如：1900-1965">
+                </div>
+                <div class="form-item">
+                    <label>备注</label>
+                    <input id="mRemark">
+                </div>
+                <button onclick="submitMember()">保存成员</button>
+                <div class="tip">新增后会自动生成ID，用于子女绑定父亲。</div>
+            </div>
 
-//生成唯一ID
-function getNewId(){
-    return Date.now().toString(36)+Math.random().toString(36).slice(2);
-}
+            <div class="tree-wrap" id="treeContainer">
+                <div class="tree-inner" id="treeInner">
+                    <div class="tip">请添加家族始祖开始构建族谱，支持录入配偶，父子层级自动渲染。</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-//添加成员表单清空
-function addMember(){
-    document.getElementById("mName").value="";
-    document.getElementById("mSpouse").value="";
-    document.getElementById("mTitle").value="";
-    document.getElementById("mFatherId").value="";
-    document.getElementById("mLife").value="";
-    document.getElementById("mRemark").value="";
-}
+    <script>
+        // 默认配置
+        let appData = {
+            secretKey: "zupu123",
+            familyTitle: "家族族谱",
+            familySubtitle: "追溯家族渊源，记录世代传承",
+            memberList: []
+        };
 
-//提交成员
-function submitMember(){
-    const name = document.getElementById("mName").value.trim();
-    if(!name){
-        alert("姓名不能为空");
-        return;
-    }
-    const obj = {
-        id:getNewId(),
-        name:name,
-        spouse:document.getElementById("mSpouse").value.trim(),
-        title:document.getElementById("mTitle").value.trim(),
-        fatherId:document.getElementById("mFatherId").value.trim(),
-        life:document.getElementById("mLife").value.trim(),
-        remark:document.getElementById("mRemark").value.trim()
-    };
-    appData.memberList.push(obj);
-    saveLocal();
-    renderTree();
-    alert(`成员已添加！ID=${obj.id}`);
-}
-
-//递归渲染族谱树，支持夫妻
-function renderTree(){
-    const container = document.getElementById("treeContainer");
-    //拿到根节点：父亲id为空
-    const roots = appData.memberList.filter(p=>!p.fatherId);
-
-    function buildHtml(person){
-        let html = `<div class="person-card">`;
-        html += `<div class="couple-box">`;
-        html += `<strong>${person.title?person.title+"：":""}${person.name}</strong>`;
-        if(person.spouse){
-            html += `<span class="divider-heart"> ❤ </span>`;
-            html += `<span>${person.spouse}</span>`;
+        // 读取本地存储
+        function loadStorage() {
+            const raw = localStorage.getItem("gu_zupu_data");
+            if (raw) {
+                appData = JSON.parse(raw);
+            }
         }
-        html += `</div>`;
-        if(person.life) html += `<div>生卒：${person.life}</div>`;
-        if(person.remark) html += `<div>备注：${person.remark}</div>`;
-        html += `<div class="tip">ID:${person.id}</div>`;
-        html += `</div>`;
-        //查找子女
-        const kids = appData.memberList.filter(k=>k.fatherId === person.id);
-        if(kids.length>0){
-            html += `<div class="children">`;
-            kids.forEach(child=>{
-                html += buildHtml(child);
-            })
-            html += `</div>`;
+
+        function saveLocal() {
+            localStorage.setItem("gu_zupu_data", JSON.stringify(appData));
+            alert("已保存到本地浏览器");
         }
-        return html;
-    }
 
-    let allHtml = "";
-    roots.forEach(r=>{
-        allHtml += buildHtml(r);
-    })
-    if(!allHtml){
-        container.innerHTML = `<div class="tip">暂无族谱数据，请添加家族始祖。</div>`;
-    }else{
-        container.innerHTML = allHtml;
-    }
-}
+        // 秘钥校验
+        function checkSecretKey() {
+            const inputVal = document.getElementById("passInput").value.trim();
+            if (inputVal === appData.secretKey) {
+                document.getElementById("lockModal").classList.add("hidden");
+                document.getElementById("mainApp").classList.remove("hidden");
+                renderFamilyTitle();
+                renderTree();
+            } else {
+                alert("秘钥错误，请重新输入");
+            }
+        }
 
-//PDF导出
-async function exportPdf(){
-    const {jsPDF} = window.jspdf;
-    const treeDom = document.getElementById("treeContainer");
-    alert("正在生成PDF，请稍候…");
-    try{
-        const canvas = await html2canvas(treeDom,{backgroundColor:"#fff9ee",scale:1.4});
-        const imgData = canvas.toDataURL("image/jpeg",0.95);
-        const pdf = new jsPDF("p","mm","a4");
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const imgW = canvas.width;
-        const imgH = canvas.height;
-        const ratio = Math.min(pageWidth/imgW, pageHeight/imgH);
-        pdf.addImage(imgData, "JPEG", 5,5, imgW*ratio, imgH*ratio);
-        pdf.save("家族族谱.pdf");
-    }catch(e){
-        console.error(e);
-        alert("导出失败，请检查网络加载jsPDF、html2canvas");
-    }
-}
+        // 修改秘钥
+        function openKeySetting() {
+            const newK = prompt("请输入新的访问秘钥", appData.secretKey);
+            if (newK && newK.trim()) {
+                appData.secretKey = newK.trim();
+                saveLocal();
+                alert("秘钥修改成功，请记住新秘钥！");
+            }
+        }
 
-//初始化
-loadStorage();
-</script>
+        // 修改族谱抬头
+        function changeFamilyTitle() {
+            const val = document.getElementById("familyTitleInput").value.trim();
+            if (!val) {
+                alert("抬头名称不能为空");
+                return;
+            }
+            appData.familyTitle = val;
+            saveLocal();
+            renderFamilyTitle();
+            alert("族谱抬头已修改为：" + val);
+        }
+
+        function renderFamilyTitle() {
+            document.getElementById("familyTitle").textContent = appData.familyTitle || "家族族谱";
+            document.getElementById("familyTitleInput").value = appData.familyTitle || "";
+        }
+
+        // 生成唯一ID
+        function getNewId() {
+            return Date.now().toString(36) + Math.random().toString(36).slice(2);
+        }
+
+        // 添加成员表单清空
+        function addMember() {
+            document.getElementById("mName").value = "";
+            document.getElementById("mSpouse").value = "";
+            document.getElementById("mTitle").value = "";
+            document.getElementById("mFatherId").value = "";
+            document.getElementById("mLife").value = "";
+            document.getElementById("mRemark").value = "";
+        }
+
+        // 提交成员
+        function submitMember() {
+            const name = document.getElementById("mName").value.trim();
+            if (!name) {
+                alert("姓名不能为空");
+                return;
+            }
+            const obj = {
+                id: getNewId(),
+                name: name,
+                spouse: document.getElementById("mSpouse").value.trim(),
+                title: document.getElementById("mTitle").value.trim(),
+                fatherId: document.getElementById("mFatherId").value.trim(),
+                life: document.getElementById("mLife").value.trim(),
+                remark: document.getElementById("mRemark").value.trim()
+            };
+            appData.memberList.push(obj);
+            saveLocal();
+            renderTree();
+            alert("成员已添加！ID=" + obj.id);
+        }
+
+        // 递归渲染族谱树，支持夫妻
+        function renderTree() {
+            const container = document.getElementById("treeInner");
+            const roots = appData.memberList.filter(p => !p.fatherId);
+
+            function buildHtml(person) {
+                let html = `<div class="person-card">`;
+                html += `<div class="couple-box">`;
+                html += `<strong>${person.title ? person.title + "：" : ""}${person.name}</strong>`;
+                if (person.spouse) {
+                    html += `<span class="divider-heart"> ❤ </span>`;
+                    html += `<span>${person.spouse}</span>`;
+                }
+                html += `</div>`;
+                if (person.life) html += `<div>生卒：${person.life}</div>`;
+                if (person.remark) html += `<div>备注：${person.remark}</div>`;
+                html += `<div class="tip">ID:${person.id}</div>`;
+                html += `</div>`;
+
+                const kids = appData.memberList.filter(k => k.fatherId === person.id);
+                if (kids.length > 0) {
+                    html += `<div class="children">`;
+                    kids.forEach(child => {
+                        html += buildHtml(child);
+                    });
+                    html += `</div>`;
+                }
+                return html;
+            }
+
+            let allHtml = "";
+            roots.forEach(r => {
+                allHtml += buildHtml(r);
+            });
+
+            if (!allHtml) {
+                container.innerHTML = `<div class="tip">暂无族谱数据，请添加家族始祖。</div>`;
+            } else {
+                container.innerHTML = allHtml;
+            }
+        }
+
+        // PDF导出
+        async function exportPdf() {
+            const { jsPDF } = window.jspdf;
+            const treeDom = document.getElementById("treeContainer");
+            alert("正在生成PDF，请稍候…");
+            try {
+                const canvas = await html2canvas(treeDom, {
+                    backgroundColor: "#fff9ee",
+                    scale: 1.4,
+                    useCORS: true
+                });
+                const imgData = canvas.toDataURL("image/jpeg", 0.95);
+                const pdf = new jsPDF("p", "mm", "a4");
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const imgW = canvas.width;
+                const imgH = canvas.height;
+                const ratio = Math.min(pageWidth / imgW, pageHeight / imgH);
+                pdf.addImage(imgData, "JPEG", 5, 5, imgW * ratio, imgH * ratio);
+                pdf.save((appData.familyTitle || "家族族谱") + ".pdf");
+            } catch (e) {
+                console.error(e);
+                alert("导出失败，请检查网络加载jsPDF、html2canvas");
+            }
+        }
+
+        // 初始化
+        loadStorage();
+    </script>
 </body>
 </html>
